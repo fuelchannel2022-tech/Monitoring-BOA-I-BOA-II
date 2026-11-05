@@ -24,13 +24,15 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 # gid (ID tab) — bukan rahasia, tanpa SHEET_ID tidak bisa dipakai.
 GID_REKAP = os.environ.get("GID_REKAP", "1381812318")    # tab "Rekap All Region"
 GID_DETAIL = os.environ.get("GID_DETAIL", "871452310")   # tab "Data_SPBU_BOA"
 RANGE_REKAP = os.environ.get("RANGE_REKAP", "A1:P13")    # blok rekap BOA I & BOA II
 MORS = [str(i) for i in range(1, 9)]
+BULAN = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
+         "Agustus", "September", "Oktober", "November", "Desember"]
 BASE = "https://docs.google.com/spreadsheets/d/"
 
 # kolom tab Data_SPBU_BOA (0 = kolom A)
@@ -251,8 +253,12 @@ def main():
     except FetchError as e:  # tanggal tidak wajib
         print(f"PERINGATAN: tanggal periode tidak terbaca ({e})", file=sys.stderr)
 
+    now_wib = datetime.now(timezone(timedelta(hours=7)))
     data = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        # nama file unduhan PPT/PDF: YYYYMMDD Weekly BOA I & BOA II
+        "file_name": now_wib.strftime("%Y%m%d") + " Weekly BOA I & BOA II",
+        "tanggal_build": f"{now_wib.day} {BULAN[now_wib.month]} {now_wib.year}",
         "periode_sheet": periode,
         "rekap": rekap,
         "kso_status": {k: sum(v.values()) for k, v in kso.items()},

@@ -71,6 +71,10 @@ h1 {
 .tabs a:hover { background: var(--tile); }
 .tabs a.active { background: var(--navy); color: #fff; }
 .tabs a:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.downloads { display: inline-flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.tabs a.dl { color: var(--green); border-color: var(--green); display: inline-flex; align-items: center; gap: 6px; }
+.tabs a.dl:hover { background: #e8f3e8; }
+.tabs a.dl svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 main { max-width: 1680px; margin: 0 auto; padding: 14px 32px 8px; }
 .loading, .error {

@@ -191,6 +191,28 @@
     if (DATA) VIEWS[v](DATA);
   }
 
+  /* Tombol unduh PPT/PDF: file dibuat GitHub Actions di folder unduh/,
+   * nama file saat diunduh: "YYYYMMDD Weekly BOA I & BOA II.pptx/.pdf" */
+  async function setupDownloads(d) {
+    const box = document.getElementById("downloads");
+    const name = d.file_name || "Weekly BOA I & BOA II";
+    const v = encodeURIComponent(d.generated_at || "");
+    let any = false;
+    for (const ext of ["pptx", "pdf"]) {
+      const a = document.getElementById("dl-" + ext);
+      const url = `unduh/weekly-boa.${ext}?v=${v}`;
+      try {
+        const r = await fetch(url, { method: "HEAD", cache: "no-store" });
+        a.hidden = !r.ok;
+        any = any || r.ok;
+      } catch (e) { a.hidden = true; }
+      a.href = url;
+      a.setAttribute("download", `${name}.${ext}`);
+      a.title = `${name}.${ext}`;
+    }
+    box.hidden = !any;
+  }
+
   const REFRESH_MS = 2 * 60 * 1000; // cek data baru setiap 2 menit
   let lastKey = "";
 
@@ -206,6 +228,7 @@
       const sync = document.getElementById("sync");
       sync.textContent = `Sumber: spreadsheet Report SPBU BOA${DATA.periode_sheet ? " (data " + DATA.periode_sheet + ")" : ""} · diperbarui ${stampWIB(DATA.generated_at)}`;
       route();
+      setupDownloads(DATA);
     } catch (e) {
       if (first) {
         app.replaceChildren(h(`<p class="error">Data belum tersedia. Jalankan workflow “Deploy dashboard” di tab Actions GitHub, lalu muat ulang halaman ini.</p>`));

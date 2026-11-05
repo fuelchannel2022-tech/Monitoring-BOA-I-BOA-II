@@ -47,6 +47,24 @@ jobs:
           FORCE: ${{ github.event_name != 'schedule' }}
         run: python scripts/compare_data.py _site/data.json "$SITE_URL"
 
+      - name: Pasang LibreOffice dan font (untuk PDF)
+        if: steps.compare.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libreoffice-impress fonts-dejavu-core > /dev/null
+          mkdir -p ~/.local/share/fonts && cp scripts/fonts/*.ttf ~/.local/share/fonts/ && fc-cache -f > /dev/null
+          pip install -q python-pptx==1.0.2
+
+      - name: Buat file PPT dan PDF
+        if: steps.compare.outputs.changed == 'true'
+        continue-on-error: true   # jika gagal, website tetap di-deploy (tombol unduh disembunyikan)
+        run: |
+          mkdir -p _site/unduh
+          python scripts/build_pptx.py _site/data.json _site/unduh/weekly-boa.pptx
+          soffice --headless --convert-to pdf --outdir _site/unduh _site/unduh/weekly-boa.pptx
+          ls -la _site/unduh
+
       - uses: actions/configure-pages@v5
         if: steps.compare.outputs.changed == 'true'
 

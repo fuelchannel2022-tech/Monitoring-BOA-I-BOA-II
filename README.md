@@ -7,6 +7,7 @@ Website statis (HTML, CSS, JavaScript tanpa library eksternal) yang dipublikasik
 - **Dashboard**: ringkasan BOA I dan BOA II, angka utama, grafik per MOR, status Pertare (Hasil Nego KSO) dan SAM.
 - **Progres BOA I**: tabel per MOR.
 - **Progres BOA II**: tabel per MOR.
+- Tombol **Unduh PPT** dan **Unduh PDF**: file `YYYYMMDD Weekly BOA I & BOA II.pptx/.pdf` dengan angka terbaru. Dibuat ulang otomatis oleh GitHub Actions setiap kali data berubah (PPT dibuat dari nol oleh `scripts/build_pptx.py`, PDF dikonversi dengan LibreOffice). File ini tidak disimpan di repository.
 
 ## Data dan kerahasiaan
 
@@ -57,6 +58,8 @@ assets/img/                logo, ikon, background
 assets/fonts/              Poppins (SIL Open Font License)
 scripts/fetch_data.py      ambil data dari Google Sheet ke data.json
 scripts/compare_data.py    cek apakah data berubah dibanding yang sedang tayang
+scripts/build_pptx.py      buat PPT 3 slide dari data.json (PDF dikonversi di Actions)
+scripts/fonts/             Poppins TTF untuk render PDF
 .github/workflows/deploy.yml   build dan deploy ke GitHub Pages
 ```
 

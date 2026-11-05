@@ -191,20 +191,38 @@
     if (DATA) VIEWS[v](DATA);
   }
 
-  async function init() {
-    document.getElementById("periode").textContent = todayWIB();
-    route();
+  const REFRESH_MS = 2 * 60 * 1000; // cek data baru setiap 2 menit
+  let lastKey = "";
+
+  async function load(first) {
     try {
-      const res = await fetch("data.json", { cache: "no-store" });
+      const res = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      DATA = await res.json();
+      const next = await res.json();
+      const key = JSON.stringify(next);
+      if (key === lastKey) return;
+      lastKey = key;
+      DATA = next;
       const sync = document.getElementById("sync");
-      sync.textContent = `Sumber: spreadsheet Report SPBU BOA${DATA.periode_sheet ? " (data " + DATA.periode_sheet + ")" : ""} · disinkronkan ${stampWIB(DATA.generated_at)}`;
+      sync.textContent = `Sumber: spreadsheet Report SPBU BOA${DATA.periode_sheet ? " (data " + DATA.periode_sheet + ")" : ""} · diperbarui ${stampWIB(DATA.generated_at)}`;
       route();
     } catch (e) {
-      app.replaceChildren(h(`<p class="error">Data belum tersedia. Jalankan workflow “Deploy dashboard” di tab Actions GitHub, lalu muat ulang halaman ini.</p>`));
+      if (first) {
+        app.replaceChildren(h(`<p class="error">Data belum tersedia. Jalankan workflow “Deploy dashboard” di tab Actions GitHub, lalu muat ulang halaman ini.</p>`));
+      }
       console.error(e);
     }
+  }
+
+  function init() {
+    document.getElementById("periode").textContent = todayWIB();
+    route();
+    load(true);
+    setInterval(() => {
+      document.getElementById("periode").textContent = todayWIB();
+      if (!document.hidden) load(false);
+    }, REFRESH_MS);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) load(false); });
   }
 
   window.addEventListener("hashchange", route);

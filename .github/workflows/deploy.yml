@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 23 * * *"   # setiap hari 06.00 WIB
-  workflow_dispatch:        # tombol "Run workflow" untuk update manual
+    - cron: "*/10 * * * *"  # cek perubahan spreadsheet setiap 10 menit
+  workflow_dispatch:         # tombol "Run workflow" untuk update manual
 
 permissions:
   contents: read
@@ -14,11 +14,13 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.compare.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,14 +40,24 @@ jobs:
           SHEET_ID: ${{ secrets.SHEET_ID }}
         run: python scripts/fetch_data.py _site/data.json
 
+      - name: Bandingkan dengan data yang sedang tayang
+        id: compare
+        env:
+          SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json
+          FORCE: ${{ github.event_name != 'schedule' }}
+        run: python scripts/compare_data.py _site/data.json "$SITE_URL"
+
       - uses: actions/configure-pages@v5
+        if: steps.compare.outputs.changed == 'true'
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.compare.outputs.changed == 'true'
         with:
           path: _site
 
   deploy:
     needs: build
+    if: needs.build.outputs.changed == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

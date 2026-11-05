@@ -29,10 +29,12 @@ Spreadsheet harus dibagikan **"Anyone with the link can view"** agar GitHub Acti
 
 ## Pembaruan data
 
-- **Otomatis:** setiap hari pukul 06.00 WIB.
-- **Manual:** buka *Actions → Deploy dashboard → Run workflow*.
+- **Otomatis setiap ada perubahan:** setiap 10 menit GitHub Actions membaca spreadsheet dan membandingkannya dengan data yang sedang tayang. Website hanya di-deploy ulang kalau ada angka yang berubah, sekecil apa pun. Kalau tidak ada perubahan, deploy dilewati.
+- **Halaman yang sedang terbuka** memeriksa data baru setiap 2 menit (dan saat tab dibuka kembali), lalu memperbarui angka tanpa perlu di-refresh.
+- **Manual:** *Actions → Deploy dashboard → Run workflow* (selalu deploy).
 - **Saat ada perubahan kode:** setiap push ke branch `main` juga memicu deploy.
-- Tanggal **Periode** di judul selalu menampilkan tanggal hari ini (WIB). Tanggal data di spreadsheet dan waktu sinkronisasi terakhir tampil di bagian bawah halaman.
+- **Jeda:** perubahan di spreadsheet biasanya tampil di website dalam ±10–20 menit. Jadwal GitHub Actions kadang terlambat beberapa menit saat server GitHub sedang sibuk.
+- Tanggal **Periode** di judul selalu menampilkan tanggal hari ini (WIB). Tanggal data di spreadsheet dan waktu pembaruan terakhir tampil di bagian bawah halaman.
 - GitHub menonaktifkan jadwal otomatis jika repository tidak ada aktivitas selama 60 hari. Jika itu terjadi, aktifkan lagi dari tab *Actions*.
 
 ## Tab spreadsheet yang dibaca
@@ -54,6 +56,7 @@ assets/js/bar-chart.js     grafik batang (SVG)
 assets/img/                logo, ikon, background
 assets/fonts/              Poppins (SIL Open Font License)
 scripts/fetch_data.py      ambil data dari Google Sheet ke data.json
+scripts/compare_data.py    cek apakah data berubah dibanding yang sedang tayang
 .github/workflows/deploy.yml   build dan deploy ke GitHub Pages
 ```
 

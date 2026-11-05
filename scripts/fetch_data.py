@@ -43,17 +43,19 @@ class FetchError(Exception):
 
 def normalize_sheet_id(raw):
     """Terima ID saja atau link lengkap; buang spasi, tanda kutip, dan '/edit...'."""
-    s = (raw or "").strip().strip("'\"").strip()
-    m = re.search(r"/spreadsheets/d/([A-Za-z0-9_-]+)", s)
+    text = (raw or "").strip()
+    m = re.search(r"/d/([A-Za-z0-9_-]{25,})", "/" + text)   # pola link: .../d/<ID>/edit
     if m:
         s = m.group(1)
-    else:
-        s = re.split(r"[/?#\s]", s, maxsplit=1)[0]
-    if not re.fullmatch(r"[A-Za-z0-9_-]{25,}", s):
+    else:  # teks lain: ambil potongan terpanjang yang berbentuk ID spreadsheet
+        tokens = re.findall(r"[A-Za-z0-9_-]{25,}", text)
+        s = max(tokens, key=len) if tokens else ""
+    if not s:
+        pola = re.sub(r"[A-Za-z0-9_-]{6,}", "<teks>", text)[:80]
         raise SystemExit(
             "SHEET_ID tidak valid. Isi Secret SHEET_ID dengan ID spreadsheet "
             "(teks di antara '/d/' dan '/edit' pada link) atau link lengkapnya. "
-            f"(panjang isi Secret sekarang: {len((raw or '').strip())} karakter)"
+            f"(panjang isi Secret: {len(text)} karakter, pola: {pola!r})"
         )
     if os.environ.get("GITHUB_ACTIONS") == "true":
         print(f"::add-mask::{s}")  # sembunyikan ID di log Actions

@@ -50,6 +50,12 @@ def normalize_sheet_id(raw):
     else:  # teks lain: ambil potongan terpanjang yang berbentuk ID spreadsheet
         tokens = re.findall(r"[A-Za-z0-9_-]{25,}", text)
         s = max(tokens, key=len) if tokens else ""
+    if not s and re.search(r"github\.io|github\.com", text, re.I):
+        raise SystemExit(
+            "SHEET_ID berisi alamat GitHub (website/repository), bukan link Google Sheets. "
+            "Ganti isi Secret SHEET_ID dengan ID spreadsheet: teks di antara '/d/' dan '/edit' "
+            "pada link docs.google.com/spreadsheets/d/.../edit."
+        )
     if not s:
         pola = re.sub(r"[A-Za-z0-9_-]{6,}", "<teks>", text)[:80]
         raise SystemExit(

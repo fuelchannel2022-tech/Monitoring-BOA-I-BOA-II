@@ -9,6 +9,8 @@ supaya spreadsheet detail per SPBU tidak terbuka di repository publik.
 
 Spreadsheet harus dibagikan "Anyone with the link can view".
 
+SHEET_ID boleh berisi ID saja atau link lengkap spreadsheet; ID-nya diambil otomatis.
+
 Pemakaian:
     SHEET_ID=xxxx python scripts/fetch_data.py _site/data.json
 """
@@ -18,6 +20,8 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -27,21 +31,92 @@ GID_REKAP = os.environ.get("GID_REKAP", "1381812318")    # tab "Rekap All Region
 GID_DETAIL = os.environ.get("GID_DETAIL", "871452310")   # tab "Data_SPBU_BOA"
 RANGE_REKAP = os.environ.get("RANGE_REKAP", "A1:P13")    # blok rekap BOA I & BOA II
 MORS = [str(i) for i in range(1, 9)]
+BASE = "https://docs.google.com/spreadsheets/d/"
+
+# kolom tab Data_SPBU_BOA (0 = kolom A)
+COL_NO, COL_MOR, COL_KSO, COL_BOA2 = 0, 1, 20, 25   # A, B, U, Z
 
 
-def gviz_csv(sheet_id, gid, **params):
+class FetchError(Exception):
+    pass
+
+
+def normalize_sheet_id(raw):
+    """Terima ID saja atau link lengkap; buang spasi, tanda kutip, dan '/edit...'."""
+    s = (raw or "").strip().strip("'\"").strip()
+    m = re.search(r"/spreadsheets/d/([A-Za-z0-9_-]+)", s)
+    if m:
+        s = m.group(1)
+    else:
+        s = re.split(r"[/?#\s]", s, maxsplit=1)[0]
+    if not re.fullmatch(r"[A-Za-z0-9_-]{25,}", s):
+        raise SystemExit(
+            "SHEET_ID tidak valid. Isi Secret SHEET_ID dengan ID spreadsheet "
+            "(teks di antara '/d/' dan '/edit' pada link) atau link lengkapnya. "
+            f"(panjang isi Secret sekarang: {len((raw or '').strip())} karakter)"
+        )
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::add-mask::{s}")  # sembunyikan ID di log Actions
+    if s != (raw or "").strip():
+        print("Info: SHEET_ID berisi link/teks tambahan; ID spreadsheet diambil otomatis.")
+    return s
+
+
+def http_get(url, what):
+    """GET dengan retry. Pesan error tidak mencantumkan URL (berisi ID spreadsheet)."""
+    last = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (boa-dashboard-builder)"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                body = r.read().decode("utf-8-sig")
+            if body.lstrip().startswith("<"):
+                raise FetchError(f"{what}: Google mengembalikan halaman HTML (kemungkinan login), bukan data. "
+                                 "Pastikan spreadsheet dibagikan 'Anyone with the link can view'.")
+            return body
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 504) and attempt < 2:
+                time.sleep(3 * (attempt + 1))
+                continue
+            hint = {
+                400: "permintaan ditolak (cek GID/range tab)",
+                401: "spreadsheet tidak dibagikan publik lewat link",
+                403: "akses ditolak (cek setelan berbagi spreadsheet)",
+                404: "spreadsheet/tab tidak ditemukan (cek isi Secret SHEET_ID dan GID tab)",
+            }.get(e.code, "kesalahan dari server Google")
+            last = FetchError(f"{what}: HTTP {e.code} — {hint}.")
+            break
+        except urllib.error.URLError as e:
+            last = FetchError(f"{what}: koneksi gagal ({e.reason}).")
+            if attempt < 2:
+                time.sleep(3 * (attempt + 1))
+    raise last
+
+
+def gviz_csv(sheet_id, gid, what, **params):
     q = {"tqx": "out:csv", "gid": gid, "headers": "0"}
     q.update(params)
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?" + urllib.parse.urlencode(q)
-    req = urllib.request.Request(url, headers={"User-Agent": "boa-dashboard-builder"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        body = r.read().decode("utf-8")
-    if body.lstrip().startswith("<"):
-        raise SystemExit(
-            "Spreadsheet tidak bisa dibaca. Pastikan SHEET_ID benar dan spreadsheet "
-            "dibagikan 'Anyone with the link can view'."
-        )
+    body = http_get(f"{BASE}{sheet_id}/gviz/tq?" + urllib.parse.urlencode(q), what + " (gviz)")
     return list(csv.reader(io.StringIO(body)))
+
+
+def export_csv(sheet_id, gid, what, **params):
+    q = {"format": "csv", "gid": gid}
+    q.update(params)
+    body = http_get(f"{BASE}{sheet_id}/export?" + urllib.parse.urlencode(q), what + " (export)")
+    return list(csv.reader(io.StringIO(body)))
+
+
+def fetch(primary, fallback, what):
+    """Coba endpoint utama; jika gagal, pakai endpoint cadangan."""
+    try:
+        return primary()
+    except FetchError as e:
+        print(f"PERINGATAN: {e} Mencoba endpoint cadangan…", file=sys.stderr)
+        try:
+            return fallback()
+        except FetchError as e2:
+            raise SystemExit(f"GAGAL mengambil {what}.\n- {e}\n- {e2}")
 
 
 def to_int(s):
@@ -113,23 +188,59 @@ def parse_pivot(rows):
     return out
 
 
+def pivot_from_rows(rows, col):
+    """Hitung jumlah per MOR untuk setiap nilai di kolom `col` dari isi tab Data_SPBU_BOA."""
+    out = {}
+    for r in rows:
+        if len(r) <= max(COL_MOR, col) or not r[COL_NO].strip():
+            continue
+        m = r[COL_MOR].strip()
+        label = r[col].strip()
+        if m not in MORS or not label:
+            continue
+        d = out.setdefault(label, {})
+        d[int(m)] = d.get(int(m), 0) + 1
+    return out
+
+
 def main():
-    sheet_id = os.environ.get("SHEET_ID", "").strip()
-    if not sheet_id:
+    raw = os.environ.get("SHEET_ID", "")
+    if not raw.strip():
         raise SystemExit("SHEET_ID belum diisi. Tambahkan di Settings > Secrets and variables > Actions.")
+    sheet_id = normalize_sheet_id(raw)
     out_path = sys.argv[1] if len(sys.argv) > 1 else "data.json"
 
-    rekap = parse_rekap(gviz_csv(sheet_id, GID_REKAP, range=RANGE_REKAP))
+    rekap = parse_rekap(fetch(
+        lambda: gviz_csv(sheet_id, GID_REKAP, "Rekap All Region", range=RANGE_REKAP),
+        lambda: export_csv(sheet_id, GID_REKAP, "Rekap All Region", range=RANGE_REKAP),
+        "tab Rekap All Region",
+    ))
 
     q_base = "select B, count(B) where A is not null group by B pivot "
-    kso = parse_pivot(gviz_csv(sheet_id, GID_DETAIL, tq=q_base + "U"))   # Hasil Nego KSO
-    hasil2 = parse_pivot(gviz_csv(sheet_id, GID_DETAIL, tq=q_base + "Z"))  # Hasil Audit BOA II
+    detail_rows = None
+
+    def detail():
+        nonlocal detail_rows
+        if detail_rows is None:
+            detail_rows = export_csv(sheet_id, GID_DETAIL, "Data_SPBU_BOA")
+        return detail_rows
+
+    kso = fetch(  # Hasil Nego KSO (kolom U)
+        lambda: parse_pivot(gviz_csv(sheet_id, GID_DETAIL, "Data_SPBU_BOA", tq=q_base + "U")),
+        lambda: pivot_from_rows(detail(), COL_KSO),
+        "Hasil Nego KSO (Data_SPBU_BOA kolom U)",
+    )
+    hasil2 = fetch(  # Hasil Audit BOA II (kolom Z)
+        lambda: parse_pivot(gviz_csv(sheet_id, GID_DETAIL, "Data_SPBU_BOA", tq=q_base + "Z")),
+        lambda: pivot_from_rows(detail(), COL_BOA2),
+        "Hasil Audit BOA II (Data_SPBU_BOA kolom Z)",
+    )
 
     periode = ""
     try:
-        cell = gviz_csv(sheet_id, GID_DETAIL, range="A1:B2")
+        cell = detail_rows if detail_rows is not None else gviz_csv(sheet_id, GID_DETAIL, "Tanggal data", range="A1:B2")
         periode = cell[0][0].strip() if cell and cell[0] else ""
-    except Exception as e:  # tanggal tidak wajib
+    except FetchError as e:  # tanggal tidak wajib
         print(f"PERINGATAN: tanggal periode tidak terbaca ({e})", file=sys.stderr)
 
     data = {

@@ -1,0 +1,10 @@
+# Data dari spreadsheet tidak boleh masuk repository (dibuat otomatis saat deploy)
+data.json
+_site/
+*.xlsx
+*.xls
+*.csv
+*.pptx
+*.pdf
+__pycache__/
+.DS_Store

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoring BOA I &amp; BOA II</title>
+  <meta name="description" content="Dashboard monitoring progres BOA I dan BOA II per MOR.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="assets/img/icon-spbu.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="top">
+    <img class="logo logo-left" src="assets/img/logo-danantara.png" alt="Danantara Indonesia">
+    <div class="heading">
+      <h1 id="title"><span class="t-navy">DASHBOARD</span> <span class="t-green">BOA I &amp; II</span></h1>
+      <p class="periode">Periode: <span id="periode">–</span></p>
+    </div>
+    <img class="logo logo-right" src="assets/img/logo-pertamina.png" alt="Pertamina Patra Niaga">
+  </header>
+
+  <nav class="tabs" aria-label="Navigasi halaman">
+    <a href="#dashboard" data-view="dashboard">Dashboard</a>
+    <a href="#boa1" data-view="boa1">Progres BOA I</a>
+    <a href="#boa2" data-view="boa2">Progres BOA II</a>
+  </nav>
+
+  <main id="app">
+    <p class="loading">Memuat data…</p>
+  </main>
+
+  <footer class="foot">
+    <p class="sync" id="sync"></p>
+    <div class="brand">
+      <img src="assets/img/energize.png" alt="Energizing Your Journey">
+      <img class="cc" src="assets/img/callcenter-135.png" alt="Pertamina Call Center 135">
+    </div>
+  </footer>
+
+  <script src="assets/js/bar-chart.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

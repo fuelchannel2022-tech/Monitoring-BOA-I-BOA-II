@@ -1,0 +1,55 @@
+name: Deploy dashboard
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 23 * * *"   # setiap hari 06.00 WIB
+  workflow_dispatch:        # tombol "Run workflow" untuk update manual
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Siapkan file website
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -r assets _site/
+          touch _site/.nojekyll
+
+      - name: Ambil data dari Google Sheet
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+        run: python scripts/fetch_data.py _site/data.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

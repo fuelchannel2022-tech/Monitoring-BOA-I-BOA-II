@@ -9,6 +9,7 @@
     dashboard: ["DASHBOARD", "BOA I & II"],
     boa1: ["PROGRES", "BOA I"],
     boa2: ["PROGRES", "BOA II"],
+    toptier: ["PROGRES", "TOP TIER"],
   };
   const app = document.getElementById("app");
   let DATA = null;
@@ -174,8 +175,42 @@
       ])}`));
   }
 
+  function viewTopTier(d) {
+    const tt = d.top_tier;
+    if (!tt) { app.replaceChildren(h(`<p class="error">Data Top Tier belum tersedia.</p>`)); return; }
+    const mor = tt.mor, t = tt.total;
+    const keys = ["total", "belum_web", "verif_pttr", "verif_kso_region", "verif_kso_pusat", "penerbitan_ba", "penerbitan_sp_sh"];
+    const row = (m, label) => `<tr><td>${label}</td>${keys.map(k => `<td>${fmt(m[k])}</td>`).join("")}</tr>`;
+    const top = mor.reduce((a, b) => (b.total > a.total ? b : a), mor[0]);
+    const stages = [["verif_pttr", "Verifikasi PTTR"], ["verif_kso_region", "Verifikasi KSO Region"], ["verif_kso_pusat", "Verifikasi KSO Pusat"],
+      ["penerbitan_ba", "Penerbitan BA"], ["penerbitan_sp_sh", "Penerbitan SP SH"]].filter(([k]) => t[k] > 0);
+    app.replaceChildren(h(`
+      <section class="card table-card"><div class="table-wrap"><table class="rekap">
+        <caption hidden>Progres Top Tier per MOR</caption>
+        <colgroup>${[8, 13, 13, 13, 14, 14, 12, 13].map(w => `<col style="--w:${w}%">`).join("")}</colgroup>
+        <thead>
+          <tr>
+            <th rowspan="3">${icon("mor", "")}MOR</th>
+            <th rowspan="3">${icon("spbu", "")}Total SPBU Top Tier</th>
+            <th colspan="6">${icon("ci", "")}TOP TIER</th>
+          </tr>
+          <tr><th colspan="6">Progress Web DDMS</th></tr>
+          <tr><th>Belum ada di web</th><th>Verifikasi PTTR</th><th>Verifikasi KSO Region</th><th>Verifikasi KSO Pusat</th><th>Penerbitan BA</th><th>Penerbitan SP SH</th></tr>
+        </thead>
+        <tbody>${mor.map(m => row(m, m.mor)).join("")}</tbody>
+        <tfoot>${row(t, "Total")}</tfoot>
+      </table></div></section>
+      ${callout([
+        `Terdapat <b>${fmt(t.total)} SPBU Top Tier</b>, terbanyak di <b>MOR ${top.mor} (${fmt(top.total)} SPBU)</b>.`,
+        `<b>${fmt(t.belum_web)} SPBU</b> belum ada di <b>web DDMS</b>.`,
+        stages.length
+          ? "Sudah berproses: " + stages.map(([k, l]) => `<b>${l} ${fmt(t[k])}</b>`).join(", ") + "."
+          : `Belum ada SPBU pada tahap <b>Verifikasi PTTR, Verifikasi KSO, Penerbitan BA</b> maupun <b>Penerbitan SP SH.</b>`,
+      ])}`));
+  }
+
   /* ---------- routing ---------- */
-  const VIEWS = { dashboard: viewDashboard, boa1: viewBoa1, boa2: viewBoa2 };
+  const VIEWS = { dashboard: viewDashboard, boa1: viewBoa1, boa2: viewBoa2, toptier: viewTopTier };
 
   function route() {
     let v = (location.hash || "#dashboard").slice(1);
@@ -229,6 +264,7 @@
       DATA = next;
       const sync = document.getElementById("sync");
       sync.textContent = `Sumber: spreadsheet Report SPBU BOA${DATA.periode_sheet ? " (data " + DATA.periode_sheet + ")" : ""} · diperbarui ${stampWIB(DATA.generated_at)}`;
+      document.querySelector('.tabs a[data-view="toptier"]').hidden = !DATA.top_tier;
       route();
       setupDownloads(DATA);
     } catch (e) {

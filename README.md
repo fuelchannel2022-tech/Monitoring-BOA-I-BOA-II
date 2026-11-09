@@ -7,6 +7,7 @@ Website statis (HTML, CSS, JavaScript tanpa library eksternal) yang dipublikasik
 - **Dashboard**: ringkasan BOA I dan BOA II, angka utama, grafik per MOR, status Pertare (Hasil Nego KSO) dan SAM.
 - **Progres BOA I**: tabel per MOR.
 - **Progres BOA II**: tabel per MOR.
+- **Progres Top Tier**: tabel Top Tier, Progress Web DDMS per MOR (baris 31–42 tab Rekap All Region).
 - Tombol **Unduh PPT** dan **Unduh PDF**: file `YYYYMMDD Weekly BOA I & BOA II.pptx/.pdf` dengan angka terbaru. Dibuat ulang otomatis oleh GitHub Actions setiap kali data berubah (PPT dibuat dari nol oleh `scripts/build_pptx.py`, PDF dikonversi dengan LibreOffice). File ini tidak disimpan di repository.
 
 ## Data dan kerahasiaan
@@ -43,14 +44,15 @@ Spreadsheet harus dibagikan **"Anyone with the link can view"** agar GitHub Acti
 | Tab | Isi yang dipakai |
 |---|---|
 | Rekap All Region (`gid=1381812318`, range `A1:P13`) | Tabel BOA I dan BOA II per MOR |
+| Rekap All Region (`gid=1381812318`, range `A31:H42`) | Tabel Top Tier, Progress Web DDMS (slide/tab ke-4) |
 | Data_SPBU_BOA (`gid=871452310`) | Kolom U (Hasil Nego KSO), kolom Z (Hasil Audit BOA II: Gagal / Pasti Pas), sel A1 (tanggal data) |
 
-Jika susunan tab berubah, sesuaikan nilai `GID_*` atau `RANGE_REKAP` di `scripts/fetch_data.py`.
+Jika susunan tab berubah, sesuaikan nilai `GID_*`, `RANGE_REKAP`, atau `RANGE_TOPTIER` di `scripts/fetch_data.py`.
 
 ## Struktur
 
 ```
-index.html                 halaman utama (3 tampilan: #dashboard, #boa1, #boa2)
+index.html                 halaman utama (4 tampilan: #dashboard, #boa1, #boa2, #toptier)
 assets/css/style.css       desain
 assets/js/app.js           tampilan dan navigasi
 assets/js/bar-chart.js     grafik batang (SVG)
@@ -58,7 +60,7 @@ assets/img/                logo, ikon, background
 assets/fonts/              Poppins (SIL Open Font License)
 scripts/fetch_data.py      ambil data dari Google Sheet ke data.json
 scripts/compare_data.py    cek apakah data berubah dibanding yang sedang tayang
-scripts/build_pptx.py      buat PPT 3 slide dari data.json (PDF dikonversi di Actions)
+scripts/build_pptx.py      buat PPT 4 slide dari data.json (PDF dikonversi di Actions)
 scripts/fonts/             Poppins TTF untuk render PDF
 .github/workflows/deploy.yml   build dan deploy ke GitHub Pages
 ```

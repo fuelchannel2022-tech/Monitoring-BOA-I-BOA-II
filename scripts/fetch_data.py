@@ -30,6 +30,8 @@ from datetime import datetime, timedelta, timezone
 GID_REKAP = os.environ.get("GID_REKAP", "1381812318")    # tab "Rekap All Region"
 GID_DETAIL = os.environ.get("GID_DETAIL", "871452310")   # tab "Data_SPBU_BOA"
 RANGE_REKAP = os.environ.get("RANGE_REKAP", "A1:P13")    # blok rekap BOA I & BOA II
+RANGE_TOPTIER = os.environ.get("RANGE_TOPTIER", "A31:H42")  # blok Top Tier - Progress Web DDMS
+TOPTIER_KEYS = ["total", "belum_web", "verif_pttr", "verif_kso_region", "verif_kso_pusat", "penerbitan_ba", "penerbitan_sp_sh"]
 MORS = [str(i) for i in range(1, 9)]
 BULAN = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
          "Agustus", "September", "Oktober", "November", "Desember"]
@@ -180,6 +182,27 @@ def parse_rekap(rows):
     return {"mor": sorted(mor, key=lambda m: m["mor"]), "total": total}
 
 
+def parse_top_tier(rows):
+    """Baris 31-42 tab Rekap All Region: MOR | Total SPBU Top Tier | Progress Web DDMS (6 tahap)."""
+    mor, total = [], None
+    for r in rows:
+        r = (r + [""] * 8)[:8]
+        a, b = r[0].strip(), r[1].strip()
+        if not b or not any(ch.isdigit() for ch in b):
+            continue
+        rec = {k: to_int(v) for k, v in zip(TOPTIER_KEYS, r[1:8])}
+        if a in MORS:
+            rec["mor"] = int(a)
+            mor.append(rec)
+        elif a == "" or a.lower() == "total":
+            total = rec
+    if len(mor) != 8:
+        raise FetchError(f"Format blok Top Tier berubah: ditemukan {len(mor)} baris MOR.")
+    if total is None:
+        total = {k: sum(m[k] for m in mor) for k in TOPTIER_KEYS}
+    return {"mor": sorted(mor, key=lambda m: m["mor"]), "total": total}
+
+
 def parse_pivot(rows):
     """Hasil query 'select B, count(B) ... group by B pivot X' -> {label: {mor: n}}"""
     if not rows:
@@ -226,6 +249,17 @@ def main():
         "tab Rekap All Region",
     ))
 
+    # Top Tier (slide/tab ke-4); tidak wajib: jika gagal, dashboard lain tetap jalan
+    top_tier = None
+    try:
+        top_tier = parse_top_tier(fetch(
+            lambda: gviz_csv(sheet_id, GID_REKAP, "Top Tier", range=RANGE_TOPTIER),
+            lambda: export_csv(sheet_id, GID_REKAP, "Top Tier", range=RANGE_TOPTIER),
+            "blok Top Tier",
+        ))
+    except (FetchError, SystemExit) as e:
+        print(f"PERINGATAN: data Top Tier tidak terbaca ({e}); slide Top Tier dilewati.", file=sys.stderr)
+
     q_base = "select B, count(B) where A is not null group by B pivot "
     detail_rows = None
 
@@ -261,6 +295,7 @@ def main():
         "tanggal_build": f"{now_wib.day} {BULAN[now_wib.month]} {now_wib.year}",
         "periode_sheet": periode,
         "rekap": rekap,
+        "top_tier": top_tier,
         "kso_status": {k: sum(v.values()) for k, v in kso.items()},
         "b2_hasil": {
             "per_mor": [

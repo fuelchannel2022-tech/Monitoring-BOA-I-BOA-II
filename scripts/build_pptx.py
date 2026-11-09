@@ -446,6 +446,44 @@ class Deck:
              (" dan ", {}), (f"{fmt(t['b2']['kso'])} KSO Mandatory.", B)],
         ], "Keterangan")
 
+    def slide_top_tier(self):
+        tt = self.d.get("top_tier")
+        if not tt:
+            return False
+        mor, t = tt["mor"], tt["total"]
+        keys = ["total", "belum_web", "verif_pttr", "verif_kso_region", "verif_kso_pusat", "penerbitan_ba", "penerbitan_sp_sh"]
+        self.new_slide("PROGRES", "TOP TIER")
+        self.rrect(0.67, 2.32, 18.66, 6.42, WHITE, "Kartu tabel", radius=0.03, shd=True)
+        header = [
+            [("MOR", 0.01), ("Total SPBU Top Tier", 0.01), ("TOP TIER", 0.6), None, None, None, None, None],
+            [None, None, "Progress Web DDMS", None, None, None, None, None],
+            [None, None, "Belum ada di web", "Verifikasi PTTR", "Verifikasi KSO Region", "Verifikasi KSO Pusat",
+             "Penerbitan BA", "Penerbitan SP SH"],
+        ]
+        merges = [(0, 0, 2, 0), (0, 1, 2, 1), (0, 2, 0, 7), (1, 2, 1, 7)]
+        body = [[m["mor"]] + [fmt(m[k]) for k in keys] for m in mor]
+        foot = ["Total"] + [fmt(t[k]) for k in keys]
+        icons = [(0, 0, "icon-mor.png", 0.6, 0.12), (1, 1, "icon-spbu.png", 0.6, 0.12), (2, 7, "icon-ci.png", 0.5, 0.07)]
+        self.table(0.87, 2.5, [100, 170, 160, 160, 170, 170, 150, 160],
+                   [0.95, 0.7, 0.58] + [0.42] * 9, header, body, foot, merges, icons, "Tabel Top Tier")
+        B = {"bold": True}
+        top = max(mor, key=lambda m: m["total"])
+        stages = [("verif_pttr", "Verifikasi PTTR"), ("verif_kso_region", "Verifikasi KSO Region"),
+                  ("verif_kso_pusat", "Verifikasi KSO Pusat"), ("penerbitan_ba", "Penerbitan BA"),
+                  ("penerbitan_sp_sh", "Penerbitan SP SH")]
+        progressed = [(lab, t[k]) for k, lab in stages if t[k]]
+        line3 = ([("Belum ada SPBU pada tahap ", {}), ("Verifikasi PTTR, Verifikasi KSO, Penerbitan BA", B),
+                  (" maupun ", {}), ("Penerbitan SP SH.", B)] if not progressed else
+                 [("Sudah berproses: ", {})] + sum([[(f"{lab} {fmt(v)}", B), (", " if i < len(progressed) - 1 else ".", {})]
+                                                     for i, (lab, v) in enumerate(progressed)], []))
+        self.callout([
+            [("Terdapat ", {}), (f"{fmt(t['total'])} SPBU Top Tier", B), (", terbanyak di ", {}),
+             (f"MOR {top['mor']} ({fmt(top['total'])} SPBU)", B), (".", {})],
+            [(f"{fmt(t['belum_web'])} SPBU", B), (" belum ada di ", {}), ("web DDMS", B), (".", {})],
+            line3,
+        ], "Keterangan")
+        return True
+
     def save(self, path, title):
         self.prs.core_properties.title = title
         self.prs.core_properties.author = "Monitoring BOA I & BOA II"
@@ -462,6 +500,7 @@ def main():
     deck.slide_dashboard()
     deck.slide_boa1()
     deck.slide_boa2()
+    deck.slide_top_tier()
     title = data.get("file_name") or "Weekly BOA I & BOA II"
     deck.save(out, title)
     print(f"OK {out} ({title})")

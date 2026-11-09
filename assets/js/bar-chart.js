@@ -23,7 +23,7 @@
    * categories: ["MOR 1", ...]
    * series: [{ name, color, values: [..] }]
    */
-  const MOBILE_MAX = 560; // lebar kontainer (px) di bawah ini -> grafik batang horizontal
+  const MOBILE_MAX = 560; // lebar kontainer (px) di bawah ini -> grafik ringkas untuk HP
   const registry = new Set();
 
   function isNarrow(container) {
@@ -34,8 +34,7 @@
     container._barArgs = [categories, series];
     container._barNarrow = isNarrow(container);
     registry.add(container);
-    if (container._barNarrow) return horizontalBar(container, categories, series);
-    return verticalBar(container, categories, series);
+    return verticalBar(container, categories, series, container._barNarrow);
   }
 
   function legendEl(series) {
@@ -48,38 +47,6 @@
       legend.appendChild(sp);
     });
     return legend;
-  }
-
-  /* Versi HP: kategori ke bawah, batang ke samping, lebar mengikuti layar. */
-  function horizontalBar(container, categories, series) {
-    const W = Math.max(260, Math.round(container.clientWidth || 320));
-    const L = 50, R = 34, bh = 11, bgap = 3, ggap = 14, T = 4;
-    const gh = series.length * bh + (series.length - 1) * bgap;
-    const H = T + categories.length * (gh + ggap);
-    const pw = W - L - R;
-    const max = Math.max(1, ...series.flatMap(s => s.values));
-
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
-      "aria-label": "Grafik per MOR: " + series.map(s => s.name).join(", ") });
-    categories.forEach((c, ci) => {
-      const gy = T + ci * (gh + ggap);
-      if (ci > 0) svg.appendChild(el("line", { x1: 0, x2: W, y1: gy - ggap / 2, y2: gy - ggap / 2, stroke: "#eef1f5", "stroke-width": 1 }));
-      svg.appendChild(el("text", { x: 0, y: gy + gh / 2 + 4, "font-size": 12.5, "font-weight": 600, fill: "#1f2937" }, c));
-      svg.appendChild(el("line", { x1: L, x2: L, y1: gy - 2, y2: gy + gh + 2, stroke: "#c8cfda", "stroke-width": 1 }));
-      series.forEach((s, si) => {
-        const v = s.values[ci] || 0;
-        const w = (v / max) * pw;
-        const y = gy + si * (bh + bgap);
-        const r = el("rect", { x: L, y, width: Math.max(w, 0), height: bh, fill: s.color, rx: 1.5 });
-        r.appendChild(el("title", {}, `${c} · ${s.name}: ${v.toLocaleString("id-ID")}`));
-        svg.appendChild(r);
-        svg.appendChild(el("text", { x: L + w + 4, y: y + bh - 1.5, "font-size": 10.5, fill: v ? "#1f2937" : "#9aa3af" },
-          v.toLocaleString("id-ID")));
-      });
-    });
-    container.innerHTML = "";
-    container.appendChild(legendEl(series));
-    container.appendChild(svg);
   }
 
   // gambar ulang saat orientasi/lebar layar berubah melewati batas HP
@@ -95,22 +62,26 @@
     }, 150);
   });
 
-  function verticalBar(container, categories, series) {
-    const W = 760, H = 330, L = 44, R = 8, T = 22, B = 34;
+  /* compact = versi HP: bentuk grafik sama, ukuran mengikuti lebar layar,
+   * angka di atas batang diputar tegak agar tidak saling tumpuk. */
+  function verticalBar(container, categories, series, compact) {
+    const W = compact ? Math.max(260, Math.round(container.clientWidth || 320)) : 760;
+    const H = compact ? 250 : 330, L = compact ? 30 : 44, R = compact ? 2 : 8, T = compact ? 30 : 22, B = compact ? 24 : 34;
+    const fs = compact ? { tick: 9, val: 9, cat: 10 } : { tick: 11, val: 10.5, cat: 12.5 };
     const pw = W - L - R, ph = H - T - B;
     const max = niceMax(Math.max(...series.flatMap(s => s.values)));
     const ticks = 5;
 
     const legend = legendEl(series);
 
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img",
-      "aria-label": "Grafik per MOR: " + series.map(s => s.name).join(", ") });
+    const svg = el("svg", Object.assign({ viewBox: `0 0 ${W} ${H}`, role: "img",
+      "aria-label": "Grafik per MOR: " + series.map(s => s.name).join(", ") }, compact ? { width: W, height: H } : {}));
 
     for (let i = 0; i <= ticks; i++) {
       const v = (max / ticks) * i;
       const y = T + ph - (v / max) * ph;
       svg.appendChild(el("line", { x1: L, x2: W - R, y1: y, y2: y, stroke: i === 0 ? "#c8cfda" : "#e3e7ee", "stroke-width": 1 }));
-      svg.appendChild(el("text", { x: L - 8, y: y + 4, "text-anchor": "end", "font-size": 11, fill: "#5b6778" },
+      svg.appendChild(el("text", { x: L - 8, y: y + 4, "text-anchor": "end", "font-size": fs.tick, fill: "#5b6778" },
         Math.round(v).toLocaleString("id-ID")));
     }
 
@@ -128,13 +99,20 @@
         r.appendChild(el("title", {}, `${c} · ${s.name}: ${v.toLocaleString("id-ID")}`));
         svg.appendChild(r);
         if (v > 0) {
-          svg.appendChild(el("text", { x: x + bw * 0.44, y: y - 5, "text-anchor": "middle", "font-size": 10.5, fill: "#1f2937" },
-            v.toLocaleString("id-ID")));
+          const cx = x + bw * 0.44;
+          svg.appendChild(compact
+            ? el("text", { x: cx + 3, y: y - 3, "font-size": fs.val, fill: "#1f2937", transform: `rotate(-90 ${cx + 3} ${y - 3})` },
+                v.toLocaleString("id-ID"))
+            : el("text", { x: cx, y: y - 5, "text-anchor": "middle", "font-size": fs.val, fill: "#1f2937" },
+                v.toLocaleString("id-ID")));
         }
       });
-      svg.appendChild(el("text", { x: L + ci * gw + gw / 2, y: H - 10, "text-anchor": "middle", "font-size": 12.5, fill: "#1f2937" }, c));
+      svg.appendChild(el("text", { x: L + ci * gw + gw / 2, y: H - 10, "text-anchor": "middle", "font-size": fs.cat, fill: "#1f2937" }, compact ? c.replace(/^MOR\s*/, "") : c));
     });
 
+    if (compact) {
+      svg.appendChild(el("text", { x: 0, y: H - 10, "font-size": fs.cat, "font-weight": 600, fill: "#5b6778" }, "MOR"));
+    }
     container.innerHTML = "";
     container.appendChild(legend);
     container.appendChild(svg);

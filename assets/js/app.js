@@ -108,18 +108,6 @@
     return `<aside class="callout"><div class="mark" aria-hidden="true"><span>!</span></div><ul>${lines.map(l => `<li>${l}</li>`).join("")}</ul></aside>`;
   }
 
-  /* Versi HP: tabel ditampilkan sebagai kartu per MOR, tersusun ke bawah. */
-  function stat(label, value, extra) {
-    return `<div class="ms"><span>${label}</span><b>${value}${extra ? ` <small>${extra}</small>` : ""}</b></div>`;
-  }
-  function mcards(rows, caption) {
-    return `<section class="mcards" aria-label="${caption}">${rows.map(r => `
-      <article class="mcard${r.total ? " total" : ""}">
-        <header>${r.total ? "" : icon("mor", "", "mi")}<b>${r.total ? "Total" : "MOR " + r.mor}</b><span>${fmt(r.spbu)} SPBU</span></header>
-        ${r.groups.map(g => `${g.title ? `<p class="mg">${g.title}</p>` : ""}<div class="mgrid">${g.stats.join("")}</div>`).join("")}
-      </article>`).join("")}</section>`;
-  }
-
   function viewBoa1(d) {
     const mor = d.rekap.mor, t = d.rekap.total;
     const row = (m, label, total) => `<tr>
@@ -130,36 +118,24 @@
     app.replaceChildren(h(`
       <section class="card table-card"><div class="table-wrap"><table class="rekap">
         <caption hidden>Progres BOA I per MOR</caption>
+        <colgroup>${[9, 11, 10, 10, 12.5, 10, 8.5, 9.5, 9, 10.5].map(w => `<col style="--w:${w}%">`).join("")}</colgroup>
         <thead>
           <tr>
             <th rowspan="3">${icon("mor", "")}MOR</th>
             <th rowspan="3">${icon("spbu", "")}Total SPBU</th>
             <th>${icon("ci", "")}CI</th>
-            <th>${icon("fca", "")}FCA/SA</th>
+            <th>${icon("fca", "")}FCA/<wbr>SA</th>
             <th rowspan="3">${icon("pct", "Persentase", "pct")}</th>
             <th>${icon("sbm", "")}SBM</th>
             <th rowspan="3">${icon("pct", "Persentase", "pct")}</th>
             <th colspan="3">${icon("kso", "")}Pertare</th>
           </tr>
-          <tr><th>Hasil Audit BOA I</th><th>Surat Peringatan (BOA I)</th><th>Coaching SBM (BOA I)</th><th colspan="3">Hasil Nego KSO</th></tr>
-          <tr><th>Gagal</th><th>Sudah Upload</th><th>Sudah Upload</th><th>Setuju KSO</th><th>Gagal</th><th>Operasional</th></tr>
+          <tr><th>Hasil Audit BOA I</th><th>Surat Pering&shy;atan (BOA I)</th><th>Coach&shy;ing SBM (BOA I)</th><th colspan="3">Hasil Nego KSO</th></tr>
+          <tr><th>Gagal</th><th>Sudah Up&shy;load</th><th>Sudah Up&shy;load</th><th>Setuju KSO</th><th>Gagal</th><th>Opera&shy;sional</th></tr>
         </thead>
         <tbody>${mor.map(m => row(m, m.mor)).join("")}</tbody>
         <tfoot>${row(t, "Total", true)}</tfoot>
       </table></div></section>
-      ${mcards([{ ...t, mor: "", isTotal: true }, ...mor].map(m => ({
-        mor: m.mor, total: !!m.isTotal, spbu: m.total,
-        groups: [
-          { stats: [
-            stat("Gagal Audit", fmt(m.b1.gagal)),
-            stat("Surat Peringatan", fmt(m.b1.sp), m.isTotal ? (t.b1.sp_pct || pct(t.b1.sp, t.b1.gagal, 2)) : pctRow(m.b1.sp, m.b1.gagal)),
-            stat("Coaching SBM", fmt(m.b1.sbm), m.isTotal ? (t.b1.sbm_pct || pctRow(t.b1.sbm, t.b1.gagal)) : pctRow(m.b1.sbm, m.b1.gagal)),
-          ] },
-          { title: "Pertare · Hasil Nego KSO", stats: [
-            stat("Setuju KSO", fmt(m.b1.kso_setuju)), stat("Gagal", fmt(m.b1.kso_gagal)), stat("Operasional", fmt(m.b1.kso_ops)),
-          ] },
-        ],
-      })), "Progres BOA I per MOR")}
       ${callout([
         `Dari <b>${fmt(t.total)} SPBU</b>, sebanyak <b>${fmt(t.b1.gagal)} SPBU</b> tercatat Gagal <b>Audit BOA I</b>.`,
         `Terdapat <b>${fmt(t.b1.sp)} SPBU (${t.b1.sp_pct || pct(t.b1.sp, t.b1.gagal, 2)})</b> yang memerlukan tindak lanjut <b>FCA/Surat Peringatan</b>.`,
@@ -174,33 +150,23 @@
     app.replaceChildren(h(`
       <section class="card table-card"><div class="table-wrap"><table class="rekap">
         <caption hidden>Progres BOA II per MOR</caption>
+        <colgroup>${[10, 12, 10.5, 10.5, 15, 15, 13.5, 13.5].map(w => `<col style="--w:${w}%">`).join("")}</colgroup>
         <thead>
           <tr>
             <th rowspan="3">${icon("mor", "")}MOR</th>
             <th rowspan="3">${icon("spbu", "")}Total SPBU</th>
             <th colspan="2">${icon("ci", "")}CI</th>
-            <th>${icon("fca", "")}FCA/SA</th>
+            <th>${icon("fca", "")}FCA/<wbr>SA</th>
             <th>${icon("sbm", "")}SBM</th>
             <th colspan="2">${icon("sam", "")}SAM</th>
           </tr>
-          <tr><th colspan="2">Hasil Audit BOA II</th><th>Surat Peringatan (BOA II)</th><th>Coaching SBM (BOA II)</th>
-              <th rowspan="2">Tutup/ Pembinaan</th><th rowspan="2">KSO Mandatory</th></tr>
-          <tr><th>Lolos</th><th>Gagal</th><th>Sudah Upload</th><th>Sudah Upload</th></tr>
+          <tr><th colspan="2">Hasil Audit BOA II</th><th>Surat Pering&shy;atan (BOA II)</th><th>Coach&shy;ing SBM (BOA II)</th>
+              <th rowspan="2">Tutup/ Pem&shy;binaan</th><th rowspan="2">KSO Manda&shy;tory</th></tr>
+          <tr><th>Lolos</th><th>Gagal</th><th>Sudah Up&shy;load</th><th>Sudah Up&shy;load</th></tr>
         </thead>
         <tbody>${mor.map(m => row(m, m.mor)).join("")}</tbody>
         <tfoot>${row(t, "Total")}</tfoot>
       </table></div></section>
-      ${mcards([{ ...t, mor: "", isTotal: true }, ...mor].map(m => ({
-        mor: m.mor, total: !!m.isTotal, spbu: m.total,
-        groups: [
-          { title: "Hasil Audit BOA II", stats: [
-            stat("Lolos", fmt(m.b2.lolos)), stat("Gagal", fmt(m.b2.gagal)), stat("Surat Peringatan", fmt(m.b2.sp)),
-          ] },
-          { title: "Tindak lanjut", stats: [
-            stat("Coaching SBM", fmt(m.b2.sbm)), stat("Tutup/ Pembinaan", fmt(m.b2.tutup)), stat("KSO Mandatory", fmt(m.b2.kso)),
-          ] },
-        ],
-      })), "Progres BOA II per MOR")}
       ${callout([
         `Terdapat <b>${fmt(t.b2.gagal)} SPBU Gagal BOA II</b>; <b>${fmt(t.b2.sp)} SPBU</b> sudah mendapatkan <b>Surat Peringatan/FCA.</b>`,
         `<b>${fmt(t.b2.sbm)} SPBU</b> telah mendapatkan <b>Coaching SBM – BOA II.</b>`,

@@ -2,7 +2,18 @@
 <html lang="id">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" id="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    /* HP & tablet: tampilkan layout laptop (lebar 1280px) yang diperkecil otomatis
+       agar sama persis dengan versi laptop dan terlihat penuh di layar. */
+    (function () {
+      var LAYOUT = 1280;
+      if (Math.min(screen.width, screen.height) < 820 || screen.width < LAYOUT) {
+        document.getElementById("viewport").setAttribute("content", "width=" + LAYOUT);
+        document.documentElement.classList.add("scaled");
+      }
+    })();
+  </script>
   <title>Monitoring BOA I &amp; BOA II</title>
   <meta name="description" content="Dashboard monitoring progres BOA I dan BOA II per MOR.">
   <meta name="robots" content="noindex, nofollow">

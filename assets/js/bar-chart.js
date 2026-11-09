@@ -27,6 +27,8 @@
   const registry = new Set();
 
   function isNarrow(container) {
+    // di HP halaman memakai layout laptop yang diperkecil -> grafik selalu versi laptop
+    if (document.documentElement.classList.contains("scaled")) return false;
     return (container.clientWidth || window.innerWidth) < MOBILE_MAX;
   }
 

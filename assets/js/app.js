@@ -191,8 +191,8 @@
         <thead>
           <tr>
             <th rowspan="3">${icon("mor", "")}MOR</th>
-            <th rowspan="3">${icon("spbu", "")}Total SPBU Top Tier</th>
-            <th colspan="6">${icon("ci", "")}TOP TIER</th>
+            <th rowspan="3">${icon("spbu-star", "")}Total SPBU Top Tier</th>
+            <th colspan="6">${icon("star", "")}TOP TIER</th>
           </tr>
           <tr><th colspan="6">Progress Web DDMS</th></tr>
           <tr><th>Belum ada di web</th><th>Verifikasi PTTR</th><th>Verifikasi KSO Region</th><th>Verifikasi KSO Pusat</th><th>Penerbitan BA</th><th>Penerbitan SP SH</th></tr>

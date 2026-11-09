@@ -463,7 +463,7 @@ class Deck:
         merges = [(0, 0, 2, 0), (0, 1, 2, 1), (0, 2, 0, 7), (1, 2, 1, 7)]
         body = [[m["mor"]] + [fmt(m[k]) for k in keys] for m in mor]
         foot = ["Total"] + [fmt(t[k]) for k in keys]
-        icons = [(0, 0, "icon-mor.png", 0.6, 0.12), (1, 1, "icon-spbu.png", 0.6, 0.12), (2, 7, "icon-ci.png", 0.5, 0.07)]
+        icons = [(0, 0, "icon-mor.png", 0.6, 0.12), (1, 1, "icon-spbu-star.png", 0.68, 0.1), (2, 7, "icon-star.png", 0.5, 0.06)]
         self.table(0.87, 2.5, [100, 170, 160, 160, 170, 170, 150, 160],
                    [0.95, 0.7, 0.58] + [0.42] * 9, header, body, foot, merges, icons, "Tabel Top Tier")
         B = {"bold": True}

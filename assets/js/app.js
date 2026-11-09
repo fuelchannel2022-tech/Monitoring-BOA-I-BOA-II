@@ -108,6 +108,18 @@
     return `<aside class="callout"><div class="mark" aria-hidden="true"><span>!</span></div><ul>${lines.map(l => `<li>${l}</li>`).join("")}</ul></aside>`;
   }
 
+  /* Versi HP: tabel ditampilkan sebagai kartu per MOR, tersusun ke bawah. */
+  function stat(label, value, extra) {
+    return `<div class="ms"><span>${label}</span><b>${value}${extra ? ` <small>${extra}</small>` : ""}</b></div>`;
+  }
+  function mcards(rows, caption) {
+    return `<section class="mcards" aria-label="${caption}">${rows.map(r => `
+      <article class="mcard${r.total ? " total" : ""}">
+        <header>${r.total ? "" : icon("mor", "", "mi")}<b>${r.total ? "Total" : "MOR " + r.mor}</b><span>${fmt(r.spbu)} SPBU</span></header>
+        ${r.groups.map(g => `${g.title ? `<p class="mg">${g.title}</p>` : ""}<div class="mgrid">${g.stats.join("")}</div>`).join("")}
+      </article>`).join("")}</section>`;
+  }
+
   function viewBoa1(d) {
     const mor = d.rekap.mor, t = d.rekap.total;
     const row = (m, label, total) => `<tr>
@@ -116,7 +128,7 @@
       <td>${fmt(m.b1.sbm)}</td><td>${total ? (m.b1.sbm_pct || pctRow(m.b1.sbm, m.b1.gagal)) : pctRow(m.b1.sbm, m.b1.gagal)}</td>
       <td>${fmt(m.b1.kso_setuju)}</td><td>${fmt(m.b1.kso_gagal)}</td><td>${fmt(m.b1.kso_ops)}</td></tr>`;
     app.replaceChildren(h(`
-      <section class="card"><div class="table-wrap"><table class="rekap">
+      <section class="card table-card"><div class="table-wrap"><table class="rekap">
         <caption hidden>Progres BOA I per MOR</caption>
         <thead>
           <tr>
@@ -135,6 +147,19 @@
         <tbody>${mor.map(m => row(m, m.mor)).join("")}</tbody>
         <tfoot>${row(t, "Total", true)}</tfoot>
       </table></div></section>
+      ${mcards([{ ...t, mor: "", isTotal: true }, ...mor].map(m => ({
+        mor: m.mor, total: !!m.isTotal, spbu: m.total,
+        groups: [
+          { stats: [
+            stat("Gagal Audit", fmt(m.b1.gagal)),
+            stat("Surat Peringatan", fmt(m.b1.sp), m.isTotal ? (t.b1.sp_pct || pct(t.b1.sp, t.b1.gagal, 2)) : pctRow(m.b1.sp, m.b1.gagal)),
+            stat("Coaching SBM", fmt(m.b1.sbm), m.isTotal ? (t.b1.sbm_pct || pctRow(t.b1.sbm, t.b1.gagal)) : pctRow(m.b1.sbm, m.b1.gagal)),
+          ] },
+          { title: "Pertare · Hasil Nego KSO", stats: [
+            stat("Setuju KSO", fmt(m.b1.kso_setuju)), stat("Gagal", fmt(m.b1.kso_gagal)), stat("Operasional", fmt(m.b1.kso_ops)),
+          ] },
+        ],
+      })), "Progres BOA I per MOR")}
       ${callout([
         `Dari <b>${fmt(t.total)} SPBU</b>, sebanyak <b>${fmt(t.b1.gagal)} SPBU</b> tercatat Gagal <b>Audit BOA I</b>.`,
         `Terdapat <b>${fmt(t.b1.sp)} SPBU (${t.b1.sp_pct || pct(t.b1.sp, t.b1.gagal, 2)})</b> yang memerlukan tindak lanjut <b>FCA/Surat Peringatan</b>.`,
@@ -147,7 +172,7 @@
     const row = (m, label) => `<tr><td>${label}</td><td>${fmt(m.total)}</td><td>${fmt(m.b2.lolos)}</td><td>${fmt(m.b2.gagal)}</td>
       <td>${fmt(m.b2.sp)}</td><td>${fmt(m.b2.sbm)}</td><td>${fmt(m.b2.tutup)}</td><td>${fmt(m.b2.kso)}</td></tr>`;
     app.replaceChildren(h(`
-      <section class="card"><div class="table-wrap"><table class="rekap">
+      <section class="card table-card"><div class="table-wrap"><table class="rekap">
         <caption hidden>Progres BOA II per MOR</caption>
         <thead>
           <tr>
@@ -165,6 +190,17 @@
         <tbody>${mor.map(m => row(m, m.mor)).join("")}</tbody>
         <tfoot>${row(t, "Total")}</tfoot>
       </table></div></section>
+      ${mcards([{ ...t, mor: "", isTotal: true }, ...mor].map(m => ({
+        mor: m.mor, total: !!m.isTotal, spbu: m.total,
+        groups: [
+          { title: "Hasil Audit BOA II", stats: [
+            stat("Lolos", fmt(m.b2.lolos)), stat("Gagal", fmt(m.b2.gagal)), stat("Surat Peringatan", fmt(m.b2.sp)),
+          ] },
+          { title: "Tindak lanjut", stats: [
+            stat("Coaching SBM", fmt(m.b2.sbm)), stat("Tutup/ Pembinaan", fmt(m.b2.tutup)), stat("KSO Mandatory", fmt(m.b2.kso)),
+          ] },
+        ],
+      })), "Progres BOA II per MOR")}
       ${callout([
         `Terdapat <b>${fmt(t.b2.gagal)} SPBU Gagal BOA II</b>; <b>${fmt(t.b2.sp)} SPBU</b> sudah mendapatkan <b>Surat Peringatan/FCA.</b>`,
         `<b>${fmt(t.b2.sbm)} SPBU</b> telah mendapatkan <b>Coaching SBM – BOA II.</b>`,

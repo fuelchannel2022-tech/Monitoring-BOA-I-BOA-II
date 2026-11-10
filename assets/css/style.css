@@ -75,6 +75,31 @@ h1 {
 .tabs a.dl { color: var(--green); border-color: var(--green); display: inline-flex; align-items: center; gap: 6px; }
 .tabs a.dl:hover { background: #e8f3e8; }
 .tabs a.dl svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* tombol dropdown "Data SPBU BOA" */
+.dd { position: relative; }
+.dd summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  color: #fff; background: var(--green); font-weight: 600; font-size: 15px;
+  padding: 9px 16px 9px 20px; border-radius: 999px; border: 2px solid var(--green); box-shadow: var(--shadow);
+}
+.dd summary::-webkit-details-marker { display: none; }
+.dd summary:hover { background: #0d4f0d; }
+.dd summary:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.dd summary svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.dd summary .caret { transition: transform .15s; }
+.dd[open] summary .caret { transform: rotate(180deg); }
+.dd-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; min-width: 230px;
+  background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(15, 30, 60, .22); padding: 6px;
+}
+.tabs .dd-menu a {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 0; border-radius: 8px;
+  box-shadow: none; background: transparent; color: var(--ink); font-weight: 500; font-size: 14px;
+}
+.tabs .dd-menu a:hover { background: var(--tile); }
+.badge { font-size: 10.5px; font-weight: 700; color: #fff; border-radius: 4px; padding: 2px 5px; letter-spacing: .3px; }
+.badge.xl { background: #1e7b34; }
+.badge.pdf { background: var(--red); }
 
 main { max-width: 1680px; margin: 0 auto; padding: 14px 32px 8px; }
 .loading, .error {

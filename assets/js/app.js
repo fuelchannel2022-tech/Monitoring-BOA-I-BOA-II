@@ -248,7 +248,37 @@
       a.title = `${name}.${ext}`;
     }
     box.hidden = !any;
+
+    // tombol "Data SPBU BOA" (Excel + PDF detail per SPBU)
+    const dd = document.getElementById("dd-detail");
+    const dname = d.detail_file_name || "Data_SPBU_BOA";
+    const dv = encodeURIComponent(d.detail_hash || d.generated_at || "");
+    let anyD = false;
+    for (const ext of ["xlsx", "pdf"]) {
+      const a = document.getElementById("dl-detail-" + ext);
+      const url = `unduh/data-spbu-boa.${ext}?v=${dv}`;
+      let ok = false;
+      if (d.detail_hash) {
+        try { ok = (await fetch(url, { method: "HEAD", cache: "no-store" })).ok; } catch (e) { ok = false; }
+      }
+      a.hidden = !ok;
+      anyD = anyD || ok;
+      a.href = url;
+      a.setAttribute("download", `${dname}.${ext}`);
+      a.title = `${dname}.${ext}`;
+    }
+    dd.hidden = !anyD;
   }
+
+  // tutup menu dropdown saat klik di luar, tekan Esc, atau setelah memilih file
+  document.addEventListener("click", (e) => {
+    document.querySelectorAll("details.dd[open]").forEach(dd => {
+      if (!dd.contains(e.target) || e.target.closest(".dd-menu a")) dd.open = false;
+    });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.querySelectorAll("details.dd[open]").forEach(dd => { dd.open = false; });
+  });
 
   const REFRESH_MS = 2 * 60 * 1000; // cek data baru setiap 2 menit
   let lastKey = "";

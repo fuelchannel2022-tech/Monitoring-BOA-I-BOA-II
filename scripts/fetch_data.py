@@ -15,6 +15,7 @@ Pemakaian:
     SHEET_ID=xxxx python scripts/fetch_data.py _site/data.json
 """
 import csv
+import hashlib
 import io
 import json
 import os
@@ -287,12 +288,34 @@ def main():
     except FetchError as e:  # tanggal tidak wajib
         print(f"PERINGATAN: tanggal periode tidak terbaca ({e})", file=sys.stderr)
 
+    # Data detail per SPBU untuk tombol "Data SPBU BOA" (Excel/PDF).
+    # CSV disimpan di luar folder website (DETAIL_CSV); hanya hash-nya yang masuk data.json
+    # agar perubahan sekecil apa pun di tab ini ikut memicu pembaruan.
+    detail_hash = None
+    detail_out = os.environ.get("DETAIL_CSV", "").strip()
+    if detail_out:
+        try:
+            rows_d = detail()
+            buf = io.StringIO()
+            csv.writer(buf).writerows(rows_d)
+            text = buf.getvalue()
+            with open(detail_out, "w", encoding="utf-8", newline="") as f:
+                f.write(text)
+            detail_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+            print(f"Data detail: {sum(1 for r in rows_d if r and r[0].strip().isdigit())} baris SPBU disimpan.")
+        except FetchError as e:
+            print(f"PERINGATAN: data detail Data_SPBU_BOA tidak terbaca ({e}); tombol Data SPBU BOA dilewati.",
+                  file=sys.stderr)
+
     now_wib = datetime.now(timezone(timedelta(hours=7)))
     data = {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         # nama file unduhan PPT/PDF: YYYYMMDD Weekly BOA I & BOA II
         "file_name": now_wib.strftime("%Y%m%d") + " Weekly BOA I & BOA II",
         "tanggal_build": f"{now_wib.day} {BULAN[now_wib.month]} {now_wib.year}",
+        # nama file unduhan data detail: YYYYMMDD Data_SPBU_BOA
+        "detail_file_name": now_wib.strftime("%Y%m%d") + " Data_SPBU_BOA",
+        "detail_hash": detail_hash,
         "periode_sheet": periode,
         "rekap": rekap,
         "top_tier": top_tier,

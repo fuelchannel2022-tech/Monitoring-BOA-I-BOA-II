@@ -3,8 +3,10 @@ name: Deploy dashboard
 on:
   push:
     branches: [main]
+  repository_dispatch:       # dipicu langsung oleh Google Apps Script saat spreadsheet diedit
+    types: [sheet-updated]
   schedule:
-    - cron: "*/10 * * * *"  # cek perubahan spreadsheet setiap 10 menit
+    - cron: "*/10 * * * *"  # cadangan: cek perubahan berkala (GitHub sering menjalankannya tiap ±1 jam)
   workflow_dispatch:         # tombol "Run workflow" untuk update manual
 
 permissions:
@@ -49,7 +51,7 @@ jobs:
         id: compare
         env:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data.json
-          FORCE: ${{ github.event_name != 'schedule' }}
+          FORCE: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         run: python scripts/compare_data.py _site/data.json "$SITE_URL"
 
       - name: Pasang LibreOffice dan font (untuk PDF)

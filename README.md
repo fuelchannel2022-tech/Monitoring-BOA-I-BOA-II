@@ -31,13 +31,30 @@ Spreadsheet harus dibagikan **"Anyone with the link can view"** agar GitHub Acti
 
 ## Pembaruan data
 
-- **Otomatis setiap ada perubahan:** setiap 10 menit GitHub Actions membaca spreadsheet dan membandingkannya dengan data yang sedang tayang. Website hanya di-deploy ulang kalau ada angka yang berubah, sekecil apa pun. Kalau tidak ada perubahan, deploy dilewati.
-- **Halaman yang sedang terbuka** memeriksa data baru setiap 2 menit (dan saat tab dibuka kembali), lalu memperbarui angka tanpa perlu di-refresh.
+- **Real-time dari spreadsheet (disarankan):** Google Apps Script di spreadsheet mengirim sinyal ke GitHub setiap kali ada edit. Website, PPT, dan PDF diperbarui sekitar **2–4 menit** setelah edit berhenti. Cara memasang ada di bawah.
+- **Cadangan otomatis:** jadwal "setiap 10 menit". Pada repository gratis, GitHub biasanya hanya menjalankannya sekitar sekali per jam.
 - **Manual:** *Actions → Deploy dashboard → Run workflow* (selalu deploy).
 - **Saat ada perubahan kode:** setiap push ke branch `main` juga memicu deploy.
-- **Jeda:** perubahan di spreadsheet biasanya tampil di website dalam ±10–20 menit. Jadwal GitHub Actions kadang terlambat beberapa menit saat server GitHub sedang sibuk.
+- Deploy hanya dijalankan kalau ada angka yang berubah. Edit yang tidak mengubah angka di dashboard tidak memicu deploy.
+- **Halaman yang sedang terbuka** memeriksa data baru setiap 2 menit (dan saat tab dibuka kembali), lalu memperbarui angka tanpa perlu di-refresh.
 - Tanggal **Periode** di judul selalu menampilkan tanggal hari ini (WIB). Tanggal data di spreadsheet dan waktu pembaruan terakhir tampil di bagian bawah halaman.
-- GitHub menonaktifkan jadwal otomatis jika repository tidak ada aktivitas selama 60 hari. Jika itu terjadi, aktifkan lagi dari tab *Actions*.
+
+### Update real-time dari spreadsheet (pasang sekali)
+
+1. **Buat token GitHub khusus repository ini.** Buka GitHub → *Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
+   - Repository access: *Only select repositories* → `Monitoring-BOA-I-BOA-II`
+   - Permissions → Repository permissions → **Contents: Read and write** (yang lain biarkan *No access*)
+   - Salin token yang muncul (diawali `github_pat_`).
+2. **Pasang script di spreadsheet.** Buka spreadsheet → *Extensions → Apps Script*. Hapus isi editor, lalu tempel isi file [`apps-script/KirimKeGitHub.gs`](apps-script/KirimKeGitHub.gs). Simpan.
+3. **Simpan token.** Di editor Apps Script: *Project Settings* (ikon roda gigi) → *Script Properties* → *Add script property*.
+   - Property: `GITHUB_TOKEN`
+   - Value: token dari langkah 1
+4. **Aktifkan.** Kembali ke *Editor*, pilih fungsi **`pasang`** di menu atas, klik *Run*, lalu izinkan akses yang diminta Google.
+5. **Cek hasilnya.** Di log harus muncul "Berhasil: GitHub menerima sinyal". Di GitHub tab *Actions* akan muncul run baru dengan keterangan **repository_dispatch**.
+
+Catatan keamanan: token disimpan di Script Properties, tidak di sel spreadsheet atau di repository. Orang yang punya akses **edit** ke spreadsheet bisa membuka editor Apps Script dan melihat token itu. Karena itu token dibatasi hanya untuk repository ini dan hanya izin *Contents*. Jika token bocor, hapus di GitHub lalu buat yang baru.
+
+- GitHub menonaktifkan jadwal otomatis jika repository tidak ada aktivitas selama 60 hari. Sinyal dari spreadsheet tetap berjalan, tetapi jadwal cadangan perlu diaktifkan lagi dari tab *Actions*.
 
 ## Tab spreadsheet yang dibaca
 
@@ -61,6 +78,7 @@ assets/fonts/              Poppins (SIL Open Font License)
 scripts/fetch_data.py      ambil data dari Google Sheet ke data.json
 scripts/compare_data.py    cek apakah data berubah dibanding yang sedang tayang
 scripts/build_pptx.py      buat PPT 4 slide dari data.json (PDF dikonversi di Actions)
+apps-script/KirimKeGitHub.gs   Google Apps Script: kirim sinyal ke GitHub saat spreadsheet diedit
 scripts/fonts/             Poppins TTF untuk render PDF
 .github/workflows/deploy.yml   build dan deploy ke GitHub Pages
 ```
